@@ -31,50 +31,53 @@ void showversion(void)
 	fprintf (stderr, "iCP12 -d <device path> -p <port> -c <channel> -a|-i|-o <val>|-m i|-m o|-m a -v\n\n" "     Examples: \n" "     Read analog value from port AN0 : iCP12 -p A -c 0 -a\n" "     Read digital value from port RB4: iCP12 -p B -c 4 -i\n" "     Write digital value to port RC6 : iCP12 -p C -c 6 -o 1\n" "     Configure RA1 for analog input  : iCP12 -p A -c 1 -m a\n" "                   ... digital input : iCP12 -p A -c 1 -m i\n" "                   ... digital output: iCP12 -p A -c 1 -m o\n");
 }
 
+static int fd=-1;			/* File descriptor for the port */
+
 void icp12 (char *device, char *cmd, char *receive, int reclen)
 {
-	int fd;			/* File descriptor for the port */
 	int n;
 	int bytes = -1;
 
 	struct termios options;
-	fd = open (device, O_RDWR | O_NOCTTY | O_NDELAY);
+	if(fd==-1) {
+		fd = open (device, O_RDWR | O_NOCTTY | O_NDELAY);
 
-	if (fd == -1) {
-		fprintf (stderr, "Cannot open device: %s\n", device);
-		return;
-	}
+		if (fd == -1) {
+			fprintf (stderr, "Cannot open device: %s\n", device);
+			return;
+		}
 
-	tcgetattr (fd, &options);
+		tcgetattr (fd, &options);
 
-	/* SEt Baud Rate */
-	cfsetispeed (&options, B115200);
-	cfsetospeed (&options, B115200);
+		/* SEt Baud Rate */
+		cfsetispeed (&options, B115200);
+		cfsetospeed (&options, B115200);
 
-	// Enable Read
-	options.c_cflag |= (CLOCAL | CREAD);
+		// Enable Read
+		options.c_cflag |= (CLOCAL | CREAD);
 
-	// Set the Charactor size
-	options.c_cflag &= ~CSIZE;	/* Mask the character size bits */
-	options.c_cflag |= CS8;	/* Select 8 data bits */
+		// Set the Charactor size
+		options.c_cflag &= ~CSIZE;	/* Mask the character size bits */
+		options.c_cflag |= CS8;	/* Select 8 data bits */
 
-	// Set parity - No Parity (8N1)
-	options.c_cflag &= ~PARENB;
-	options.c_cflag &= ~CSTOPB;
-	options.c_cflag &= ~CSIZE;
-	options.c_cflag |= CS8;
+		// Set parity - No Parity (8N1)
+		options.c_cflag &= ~PARENB;
+		options.c_cflag &= ~CSTOPB;
+		options.c_cflag &= ~CSIZE;
+		options.c_cflag |= CS8;
 
-	// Enable Raw Input
-	options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
+		// Enable Raw Input
+		options.c_lflag &= ~(ICANON | ECHO | ECHOE | ISIG);
 
-	// Disable Software Flow control
-	options.c_iflag &= ~(IXON | IXOFF | IXANY);
+		// Disable Software Flow control
+		options.c_iflag &= ~(IXON | IXOFF | IXANY);
 
-	// Chose raw (not processed) output
-	options.c_oflag &= ~OPOST;
+		// Chose raw (not processed) output
+		options.c_oflag &= ~OPOST;
 
-	if (tcsetattr (fd, TCSANOW, &options) == -1) {
-		fprintf (stderr, "Error with tcsetattr = %s\n", strerror (errno));
+		if (tcsetattr (fd, TCSANOW, &options) == -1) {
+			fprintf (stderr, "Error with tcsetattr = %s\n", strerror (errno));
+		}
 	}
 	// Write to the port
 	int len = strlen (cmd);
@@ -97,7 +100,6 @@ void icp12 (char *device, char *cmd, char *receive, int reclen)
 	if (bytes <= 0) {
 		fprintf (stderr, "Error reading from device, command: %s\n", cmd);
 	}
-	close (fd);
 }
 
 
@@ -202,5 +204,9 @@ int main (int argc, char **argv)
 	if(argc == 1) {
 		showversion();
 	} 
+	
+	if(fd!=-1) {
+		close (fd);
+	}
 	return 0;
 }
