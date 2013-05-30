@@ -28,7 +28,15 @@
 
 void showversion(void)
 {
-	fprintf (stderr, "iCP12 -d <device path> -p <port> -c <channel> -a|-i|-o <val>|-m i|-m o|-m a -v\n\n" "     Examples: \n" "     Read analog value from port AN0 : iCP12 -p A -c 0 -a\n" "     Read digital value from port RB4: iCP12 -p B -c 4 -i\n" "     Write digital value to port RC6 : iCP12 -p C -c 6 -o 1\n" "     Configure RA1 for analog input  : iCP12 -p A -c 1 -m a\n" "                   ... digital input : iCP12 -p A -c 1 -m i\n" "                   ... digital output: iCP12 -p A -c 1 -m o\n");
+	fprintf (stderr, "iCP12 -d <device path> -p <port> -c <channel> -a|-i|-o <val>|-m i|-m o|-m a -v | -T \n\n" 
+		 "     Examples: \n"
+		 "     Read analog value from port AN0 : iCP12 -p A -c 0 -a\n"
+		 "     Read digital value from port RB4: iCP12 -p B -c 4 -i\n" 
+		 "     Write digital value to port RC6 : iCP12 -p C -c 6 -o 1\n" 
+		 "     Configure RA1 for analog input  : iCP12 -p A -c 1 -m a\n" 
+		 "                   ... digital input : iCP12 -p A -c 1 -m i\n" 
+		 "                   ... digital output: iCP12 -p A -c 1 -m o\n"
+		 "     Read LM75 temp, addr 1          : iCP12 -c 1 -T\n");
 }
 
 static int fd=-1;			/* File descriptor for the port */
@@ -39,6 +47,7 @@ void icp12 (char *device, char *cmd, char *receive, int reclen)
 	int bytes = -1;
 
 	struct termios options;
+	//puts(cmd);
 	if(fd==-1) {
 		fd = open (device, O_RDWR | O_NOCTTY | O_NDELAY);
 
@@ -102,6 +111,8 @@ void icp12 (char *device, char *cmd, char *receive, int reclen)
 	}
 }
 
+#include "i2c.c"
+
 
 int main (int argc, char **argv)
 {
@@ -115,7 +126,7 @@ int main (int argc, char **argv)
 	char port = 'A';
 
 	while (1) {
-		c = getopt (argc, argv, "hc:d:c:aio:m:p:v");
+		c = getopt (argc, argv, "hc:d:c:aio:m:p:vT");
 		if (c == -1)
 			break;
 
@@ -197,6 +208,12 @@ int main (int argc, char **argv)
 				printf ("Device version %s\n", recv + 5);
 			}
 			break;
+		case 'T': 
+		{
+			float t=lm75_read(device,ch);
+			printf("T%i=%.1f\n",ch,t);
+			break;
+		}
 		default:
 			showversion();
 		}
